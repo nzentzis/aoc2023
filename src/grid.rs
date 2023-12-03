@@ -132,11 +132,19 @@ impl<T> Grid<T> {
     /// # Panics
     /// Panics if the given row is not inside the grid.
     #[inline]
-    pub fn row_iter(&self, row: usize) -> impl Iterator<Item=&T> + DoubleEndedIterator + ExactSizeIterator {
+    pub fn row_iter(
+        &self,
+        row: usize,
+    ) -> impl Iterator<Item=GridPoint<T>> + DoubleEndedIterator + ExactSizeIterator {
         assert!(row < self.height, "Attempted to access row outside the grid");
 
         let start_idx = row*self.width;
-        self.data[start_idx..start_idx+self.width].iter()
+        (start_idx..start_idx+self.width).into_iter().enumerate()
+            .map(move |(col, index)| GridPoint {
+                coords: (col, row),
+                index,
+                grid: self,
+            })
     }
 
     /// Get an iterator over mutable references to the cells in a given row
@@ -463,15 +471,15 @@ mod test {
     fn row_iteration() {
         let grid = Grid::from_fn(4, 4, |x, y| x+y);
 
-        assert_eq!(grid.row_iter(0).cloned().collect::<Vec<_>>(), vec![0, 1, 2, 3]);
-        assert_eq!(grid.row_iter(1).cloned().collect::<Vec<_>>(), vec![1, 2, 3, 4]);
-        assert_eq!(grid.row_iter(2).cloned().collect::<Vec<_>>(), vec![2, 3, 4, 5]);
-        assert_eq!(grid.row_iter(3).cloned().collect::<Vec<_>>(), vec![3, 4, 5, 6]);
+        assert_eq!(grid.row_iter(0).map(|x| *x).collect::<Vec<_>>(), vec![0, 1, 2, 3]);
+        assert_eq!(grid.row_iter(1).map(|x| *x).collect::<Vec<_>>(), vec![1, 2, 3, 4]);
+        assert_eq!(grid.row_iter(2).map(|x| *x).collect::<Vec<_>>(), vec![2, 3, 4, 5]);
+        assert_eq!(grid.row_iter(3).map(|x| *x).collect::<Vec<_>>(), vec![3, 4, 5, 6]);
 
-        assert_eq!(grid.row_iter(0).rev().cloned().collect::<Vec<_>>(), vec![3, 2, 1, 0]);
-        assert_eq!(grid.row_iter(1).rev().cloned().collect::<Vec<_>>(), vec![4, 3, 2, 1]);
-        assert_eq!(grid.row_iter(2).rev().cloned().collect::<Vec<_>>(), vec![5, 4, 3, 2]);
-        assert_eq!(grid.row_iter(3).rev().cloned().collect::<Vec<_>>(), vec![6, 5, 4, 3]);
+        assert_eq!(grid.row_iter(0).rev().map(|x| *x).collect::<Vec<_>>(), vec![3, 2, 1, 0]);
+        assert_eq!(grid.row_iter(1).rev().map(|x| *x).collect::<Vec<_>>(), vec![4, 3, 2, 1]);
+        assert_eq!(grid.row_iter(2).rev().map(|x| *x).collect::<Vec<_>>(), vec![5, 4, 3, 2]);
+        assert_eq!(grid.row_iter(3).rev().map(|x| *x).collect::<Vec<_>>(), vec![6, 5, 4, 3]);
     }
 
     #[test]
