@@ -43,16 +43,14 @@ impl NumberMap {
         // find contiguous numbers by running a state machine over each line
         let mut numbers = Vec::new();
         let mut number_ids = Grid::filled_like(&grid, None);
-        let mut next_num_id = 0;
 
         for row_idx in 0..grid.height() {
             let mut state = State::Idle;
             for cell in grid.row_iter(row_idx) {
                 match (&mut state, *cell) {
                     (State::Idle, Cell::Digit(n)) => {
-                        state = State::Number { accum: n as u32, ident: next_num_id };
-                        number_ids.set(cell.coords(), Some(next_num_id));
-                        next_num_id += 1;
+                        state = State::Number { accum: n as u32, ident: numbers.len() };
+                        number_ids.set(cell.coords(), Some(numbers.len()));
                     }
                     (State::Idle, _) => {}
                     (State::Number { accum, ident }, Cell::Digit(n)) => {
