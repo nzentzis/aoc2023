@@ -4,6 +4,8 @@ use std::sync::Arc;
 mod grid;
 mod util;
 
+const SAMPLES: usize = 2000;
+
 macro_rules! problem {
     ($load:path => $input:ty => ()) => {
         type Input = $input;
@@ -147,6 +149,9 @@ fn main() {
             }
         }
     } else {
+        let do_bench = std::env::var_os("BENCHMARK").is_some();
+        let mut results = Vec::new();
+
         let begin = std::time::Instant::now();
         for (idx, prob) in PROBLEMS.iter().enumerate() {
             let p_num = idx + 1;
@@ -169,20 +174,70 @@ fn main() {
                 }
             };
 
+            let mut samples = Vec::new();
             if let Some(p1) = prob.solve1 {
-                if let Err(e) = (p1)(Arc::clone(&input)).map(std::hint::black_box) {
-                    eprintln!("{:02}: Part 1 failed: {}", p_num, e);
+                if do_bench {
+                    for _ in 0..SAMPLES {
+                        let start = std::time::Instant::now();
+                        let _ = std::hint::black_box((p1)(Arc::clone(&input)));
+                        let dur = start.elapsed();
+                        samples.push(dur);
+                    }
+                } else {
+                    if let Err(e) = (p1)(Arc::clone(&input)).map(std::hint::black_box) {
+                        eprintln!("{:02}: Part 1 failed: {}", p_num, e);
+                    }
                 }
             }
+
+            let avg1 = if do_bench {
+                Some(samples.drain(..).sum::<std::time::Duration>() / (SAMPLES as u32))
+            } else {
+                None
+            };
+
             if let Some(p2) = prob.solve2 {
-                if let Err(e) = (p2)(input).map(std::hint::black_box) {
-                    eprintln!("{:02}: Part 2 failed: {}", p_num, e);
+                if do_bench {
+                    for _ in 0..SAMPLES {
+                        let start = std::time::Instant::now();
+                        let _ = std::hint::black_box((p2)(Arc::clone(&input)));
+                        let dur = start.elapsed();
+                        samples.push(dur);
+                    }
+                } else {
+                    if let Err(e) = (p2)(input).map(std::hint::black_box) {
+                        eprintln!("{:02}: Part 2 failed: {}", p_num, e);
+                    }
                 }
+            }
+
+            let avg2 = if do_bench {
+                Some(samples.drain(..).sum::<std::time::Duration>() / (SAMPLES as u32))
+            } else {
+                None
+            };
+
+            if do_bench {
+                results.push((avg1, avg2));
             }
         }
         let end = std::time::Instant::now();
         let dur = end.duration_since(begin);
-        println!("Solved {} problems in {} ms", PROBLEMS.len(), dur.as_millis());
+
+        if do_bench {
+            for (idx, (avg1, avg2)) in results.into_iter().enumerate() {
+                print!("{:02}: ", idx+1);
+                if let Some(avg1) = avg1 {
+                    print!("p1={:<12?}  ", avg1);
+                }
+                if let Some(avg2) = avg2 {
+                    print!("p2={:<12?}", avg2);
+                }
+                println!();
+            }
+        } else {
+            println!("Solved {} problems in {} ms", PROBLEMS.len(), dur.as_millis());
+        }
     }
 }
 
