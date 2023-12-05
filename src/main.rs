@@ -187,5 +187,5 @@ fn main() {
 }
 
 problems! {
-    p01 p02 p03
+    p01 p02 p03 p04
 }
